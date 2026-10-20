@@ -52,6 +52,26 @@ def run(circuit: Circuit, x: np.ndarray, theta: np.ndarray) -> np.ndarray:
     return state
 
 
+def run_batch(circuit: Circuit, x: np.ndarray, thetas: np.ndarray) -> np.ndarray:
+    """Final states where row b uses its own input x[b] and parameters thetas[b]."""
+    n = circuit.n_qubits
+    x = np.atleast_2d(np.asarray(x, dtype=float))
+    thetas = np.atleast_2d(np.asarray(thetas, dtype=float))
+    B = thetas.shape[0]
+    if x.shape[0] == 1 and B > 1:
+        x = np.repeat(x, B, axis=0)
+    state = np.zeros((B, 2**n), dtype=complex)
+    state[:, 0] = 1.0
+    for op in circuit.ops:
+        if isinstance(op, Encode):
+            state = _rotate(state, pl.single(n, op.qubit, "Y"), x[:, op.feature], n)
+        elif isinstance(op, Rot):
+            state = _rotate(state, op.pauli, op.coeff * thetas[:, op.param], n)
+        else:
+            state = _apply_clifford(state, op, n)
+    return state
+
+
 def expectation(circuit: Circuit, x: np.ndarray, theta: np.ndarray, observable: pl.Pauli) -> np.ndarray:
     """<O>(x; theta) for each row of x."""
     return pl.expval(run(circuit, x, theta), observable, circuit.n_qubits)

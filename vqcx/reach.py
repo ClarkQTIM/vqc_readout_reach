@@ -12,7 +12,13 @@ per qubit I -> 1, Z -> cos x_q, X -> sin x_q, Y -> 0. So
 
 A feature is *odd* if some surviving string has X on its qubit (the model can use the sign of
 x_q), *even* if it only ever appears with Z (the model sees only cos x_q, which cannot tell
-x_q from -x_q), and *none* if it never appears.
+x_q from -x_q), and *none* if it never appears. ``feature_parts`` keeps both pieces: a feature
+whose parts are {'odd'} only gives an output that is odd in x_q, which cannot see |x_q|.
+
+Since each x_q enters once, <O> is multilinear in (cos x_q, sin x_q). So if the label is
+invariant under x_q -> -x_q and only odd parts reach the readout (or the label flips sign and
+only even parts reach it), the classes are mirror images under the model and the expected AUC
+is exactly 0.5, whatever the training, depth or expressibility.
 
 Assumption: coefficients are generic, i.e. no two paths cancel exactly. ``tests/test_reach.py``
 checks the rule against direct simulation over the whole grid.
@@ -32,6 +38,15 @@ class Reach:
     strings: set[pl.Pauli]          # surviving strings at the encoding layer (no Y)
     feature_status: list[str]       # per feature: 'none' | 'even' | 'odd'
     n_propagated: int               # strings before dropping those with Y
+    feature_parts: list[frozenset[str]]  # per feature: subset of {'even', 'odd'} that appears
+
+    def can_use_sign(self, feature: int) -> bool:
+        """Some term is odd in x_feature, so the model can tell x from -x."""
+        return "odd" in self.feature_parts[feature]
+
+    def can_use_magnitude(self, feature: int) -> bool:
+        """Some term is even and non-constant in x_feature (cos x), so |x| is visible."""
+        return "even" in self.feature_parts[feature]
 
     @property
     def odd_features(self) -> list[int]:
@@ -75,12 +90,16 @@ def readout_reach(circuit: Circuit, observable: pl.Pauli) -> Reach:
     propagated = propagate(circuit, observable)
     surviving = {p for p in propagated if "Y" not in pl.to_label(p, n)}
     status = ["none"] * n_features
+    parts: list[set[str]] = [set() for _ in range(n_features)]
     for p in surviving:
         for q in range(n):
             ch = pl.letter(p, n, q)
             f = feature_of[q]
             if ch == "X":
                 status[f] = "odd"
-            elif ch == "Z" and status[f] == "none":
-                status[f] = "even"
-    return Reach(n, surviving, status, len(propagated))
+                parts[f].add("odd")
+            elif ch == "Z":
+                parts[f].add("even")
+                if status[f] == "none":
+                    status[f] = "even"
+    return Reach(n, surviving, status, len(propagated), [frozenset(s) for s in parts])
