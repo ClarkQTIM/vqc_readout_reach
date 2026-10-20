@@ -1,0 +1,99 @@
+# Testing the Connection Between Expressibility and Barren Plateaus
+
+Holmes et al. (2022) propose that highly expressive quantum circuits (those with low KL divergence to the Haar distribution) tend to exhibit barren plateaus: regions of the optimization landscape where gradients vanish exponentially with system size. This makes optimization difficult or impossible with gradient-based methods.
+
+This document outlines a plan to empirically test that hypothesis using the KL expressibility scores we have already computed.
+
+---
+
+## Step-by-Step Testing Plan
+
+### 1. Select Architectures
+
+* Use rows from `expressibility_results.csv`
+* Choose architectures with:
+
+  * Low expressibility (high KL)
+  * Medium expressibility
+  * High expressibility (low KL)
+* For balance, pick 3–5 architectures from each range
+
+### 2. Initialize Circuits
+
+* Use `build_vqc_circuit()` and `init_weights()`
+* Fix a random seed to ensure reproducibility
+* Use a fixed input (e.g., random unit vector) and ensure consistent data across architectures
+
+### 3. Define a Simple Cost Function
+
+* Use a standard observable (e.g., `qml.PauliZ(0)`) or a randomly generated Hermitian operator
+* Define:
+
+  $$
+  C(\theta) = \langle \psi(\theta) | H | \psi(\theta) \rangle
+  $$
+
+### 4. Compute Gradients
+
+* Use `qml.grad()` or `torch.autograd.grad` to compute the gradient of `C` w\.r.t. circuit parameters
+* Measure:
+
+  * Mean gradient magnitude
+  * Gradient variance (per-layer or overall)
+
+### 5. Record Results
+
+Create a CSV:
+
+| n\_qubits | num\_layers | single\_qubit\_op | entanglement\_op | topology | KL | mean\_grad | grad\_var |
+| --------- | ----------- | ----------------- | ---------------- | -------- | -- | ---------- | --------- |
+
+Plot:
+
+* KL vs. mean gradient magnitude
+* KL vs. log(gradient variance)
+
+Expect to see:
+
+* Lower KL → smaller gradients → plateau-like behavior
+* Higher KL → larger, more variable gradients
+
+---
+
+## Optional Extensions
+
+* Repeat with multiple random seeds
+* Track gradient changes over several training steps
+* Try both dummy and real classification losses
+* Compare expressibility-barren plateau effect across circuit families (e.g., CRX vs Ising)
+
+This approach provides an empirical path to validate Holmes et al.'s theoretical results using the expressibility dataset already generated.
+
+07/16
+
+Summary of Current Status and Next Steps
+You’re analyzing how quantum circuit properties — expressibility, entanglement, gradient norms, and performance — relate to one another across different circuit designs.
+
+You’ve run this analysis on:
+
+Iris: A clean, synthetic dataset (useful for theoretical clarity)
+
+RetinaMNIST: A real-world, medical imaging dataset (validates applicability)
+
+This two-dataset setup:
+
+Confirms known relationships from prior work:
+
+More expressive and entangling circuits tend to show better performance.
+
+Gradient norms and expressibility are connected (per prior barren plateau theory).
+
+Bridges theory to practice — showing your findings apply to real-world data.
+
+You're planning to:
+
+Sanity check against past results (two cited papers).
+
+Mathematically justify why different gate/topology choices matter (e.g., via group theory and Lie algebras).
+
+Go deeper, possibly using category theory or logic foundations, to position this work as a rigorous contribution suitable for grad school applications.
