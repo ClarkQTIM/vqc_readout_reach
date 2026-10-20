@@ -95,6 +95,34 @@ def run_job(j, args, dla_cache):
     return rec
 
 
+def write_manifest(args):
+    """Record exactly what produced this shard: code version, library versions, arguments."""
+    import platform
+    import socket
+    import subprocess
+    import sys
+
+    import scipy
+    import sklearn
+
+    def git(*cmd):
+        try:
+            return subprocess.run(["git", *cmd], capture_output=True, text=True,
+                                  cwd=Path(__file__).resolve().parents[1]).stdout.strip()
+        except OSError:
+            return "unknown"
+
+    manifest = {
+        "git_commit": git("rev-parse", "HEAD"),
+        "git_dirty": bool(git("status", "--porcelain", "--", "vqcx", "scripts")),
+        "python": sys.version.split()[0], "numpy": np.__version__, "scipy": scipy.__version__,
+        "sklearn": sklearn.__version__, "platform": platform.platform(), "host": socket.gethostname(),
+        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "args": {k: (str(v) if isinstance(v, Path) else v) for k, v in vars(args).items()},
+    }
+    (args.out / f"manifest_shard_{args.shard:04d}.json").write_text(json.dumps(manifest, indent=2))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--n-qubits", type=int, default=4)
@@ -119,6 +147,7 @@ def main():
         args.feature = args.n_qubits - 1
 
     args.out.mkdir(parents=True, exist_ok=True)
+    write_manifest(args)
     path = args.out / f"shard_{args.shard:04d}.jsonl"
     done = set()
     if path.exists():

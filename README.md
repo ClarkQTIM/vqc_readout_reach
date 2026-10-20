@@ -32,6 +32,22 @@ python scripts/selection_rule.py --layers 1 2 --seeds 0 --out results/raw/smoke
 python scripts/analyze_selection_rule.py results/raw/smoke --metrics results/circuit_metrics_4q.csv
 ```
 
+## Reproducing a run
+
+Every job is seeded from its own key (circuit, readout, task, seed), so results do not depend on
+run order or on how many shards a run is split into. Each shard also writes a manifest with the
+git commit and library versions.
+
+```bash
+bash scripts/reproduce_pilot.sh                     # tests + full pilot locally, then compare
+# or on SLURM:
+N_SHARDS=20 sbatch --array=0-19 slurm/pilot.sbatch
+bash scripts/reproduce_pilot.sh --analyze-only
+```
+
+`results/reference/` holds the reference outputs to check against. The server's run is the
+one that counts; `scripts/compare_runs.py <truth> <other>` reports every job that disagrees.
+
 ## The prediction being tested
 
 Each input x_q enters once, through RY(x_q), so the readout's expectation value is multilinear in
