@@ -50,8 +50,8 @@ def main(csv: Path, out: Path):
         for sp in ("left", "bottom"):
             ax.spines[sp].set_color(INK2)
         n_bad = (~s.predicted_solvable).sum()
-        ax.text(150, 0.43, f"predicted unsolvable ({n_bad} runs)", color=UNSOLVABLE, fontsize=9, ha="right")
-        ax.text(150, 1.0, f"predicted solvable ({len(s) - n_bad} runs)", color=SOLVABLE, fontsize=9, ha="right", va="top")
+        ax.text(7, 0.42, f"predicted unsolvable\n({n_bad} runs)", color=UNSOLVABLE, fontsize=9, ha="center", va="top")
+        ax.text(7, 0.97, f"predicted solvable\n({len(s) - n_bad} runs)", color=SOLVABLE, fontsize=9, ha="center", va="top")
     axes[0].set_ylabel("Test AUC", color=INK2)
     handles = [plt.Line2D([], [], marker="o", ls="", color=c, label=l, markersize=6)
                for c, l in ((SOLVABLE, "predicted solvable"), (UNSOLVABLE, "predicted unsolvable"))]
