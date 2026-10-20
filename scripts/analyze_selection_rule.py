@@ -38,6 +38,7 @@ def main():
     print(f"{len(df)} runs -> {out}\n")
 
     syn = df[df.task.isin(["sign", "magnitude"])].copy()
+    syn["predicted_solvable"] = syn.predicted_solvable.astype(bool)
     if len(syn):
         print("=== 1. Prediction vs outcome on the synthetic tasks (test AUC; n_test per run in the config) ===")
         g = syn.groupby(["task", "readout", "predicted_solvable"]).auc_test
@@ -73,7 +74,8 @@ def main():
 
     print("=== 4. Matched pairs for C: same circuit and parameter count, different Lie algebra ===")
     pair = df[df.entanglement_op.isin(["ising_xx", "ising_yy", "ising_zz"]) & df.single_qubit_op.isin(["rx", "ry", "rz"])]
-    pair = pair[pair.task.isin(["sign", "magnitude"]) & pair.predicted_solvable.fillna(False)]
+    pair = pair[pair.task.isin(["sign", "magnitude"])]
+    pair = pair[pair.predicted_solvable.astype(bool)]
     agg = (pair.groupby(["single_qubit_op", "entanglement_op", "topology", "readout"])
            .agg(dla=("dla_dim", "first"), n_params=("n_params", "first"), runs=("auc_test", "size"),
                 auc=("auc_test", "mean"), loss_final=("loss_final", "mean")))
