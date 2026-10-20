@@ -1,4 +1,4 @@
-# vqc-readout
+# vqc_readout_reach
 
 What can the readout qubit see? Readout reachability, Lie algebras and performance of
 variational quantum classifiers.
